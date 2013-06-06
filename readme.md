@@ -7,5 +7,7 @@ How To
 ------
 
 - download node-webkit engine from https://github.com/rogerwang/node-webkit#downloads
+- make node-webkit engine support mp4 video playback https://github.com/rogerwang/node-webkit/wiki/Support-mp3-and-h264-in-video-and-audio-tag
+- OR use the node-webkit*.zip (Mac OS X only; Adjusted with the steps above)
 - drag *base/app.nw* folder into node-webkit engine
 - downloaded videos goes to *base/vids*
