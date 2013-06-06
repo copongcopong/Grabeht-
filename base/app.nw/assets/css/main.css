@@ -179,5 +179,12 @@ ul.video-formats {
 	min-height: 300px;
 }
 
+@-webkit-keyframes pulsate {
+	 0% {color: #ecf0f1;} 
+	 100% {color: #3498db;} 
+ }
+
+.dlstats
+ { -webkit-animation: pulsate 2s infinite alternate; }
 
 
