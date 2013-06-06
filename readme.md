@@ -11,3 +11,8 @@ How To
 - OR use the node-webkit*.zip (Mac OS X only; Adjusted with the steps above)
 - drag *base/app.nw* folder into node-webkit engine
 - downloaded videos goes to *base/vids*
+
+Notes
+-----
+
+- Tested in Mac OS X only (for now)

@@ -196,7 +196,21 @@
 				
 				events: {
 					"click a.dl": "saveVideo",
-					"click a.watch": "watchVideo"
+					"click a.watch": "watchVideo",
+					"click button.default-player": "playOutside"
+				},
+				
+				playOutside: function(ev) {
+					ev.preventDefault();
+					el = $(ev.target);
+					console.log(el);
+					vpath = el.attr('data-vpath').split('vids/')[1];
+					var gui = require('nw.gui');
+					b = process.cwd().split('app.nw')[0];
+					path = b + 'vids/' + vpath;
+					gui.Shell.openItem(path);
+					
+					this.$el.find('video').get(0).pause();
 				},
 				
 				cleanupTitle: function(str) {
@@ -330,7 +344,7 @@
 					console.log("showVideo", vPathReal, ext);
 					ww = this.$el.find('.video-box').width();
 					w = ww - 20;
-					tpl = "<video width=\""+w+"\" controls><source src=\""+vPathReal+"\" type=\"video/"+ext+"\" autoplay></video>";
+					tpl = "<video width=\""+w+"\" controls autoplay><source src=\""+vPathReal+"\" type=\"video/"+ext+"\" autoplay></video> <p style='text-align: right; margin-right: 20px;'><button data-vpath=\""+vPathReal+"\" class='pure-button default-player'>Open with default player</button></p>";
 					this.$el.find('.video-box').html(tpl);
 					
 					
@@ -392,14 +406,27 @@
 					this.$el.html(ctpl).show();
 				},
 				events: {
-					"click a.watch": "watchVideo"
+					"click a.watch": "watchVideo",
+					"click button.default-player": "playOutside"
+				},
+				
+				playOutside: function(ev) {
+					ev.preventDefault();
+					el = $(ev.target);
+					console.log(el);
+					vpath = el.attr('data-vpath').split('vids/')[1];
+					var gui = require('nw.gui');
+					b = process.cwd().split('app.nw')[0];
+					path = b + 'vids/' + vpath;
+					gui.Shell.openItem(path);
+					this.$el.find('video').get(0).pause();
 				},
 				
 				showVideo: function(vPathReal, ext) {
 					console.log("showVideo", vPathReal, ext);
 					ww = this.$el.find('.video-list-box').width();
 					w = ww - 20;
-					tpl = "<video width=\""+w+"\" controls><source src=\""+vPathReal+"\" type=\"video/"+ext+"\" autoplay></video>";
+					tpl = "<video width=\""+w+"\" controls><source src=\""+vPathReal+"\" type=\"video/"+ext+"\" autoplay></video><p style='text-align: right; margin-right: 20px;'><button data-vpath=\""+vPathReal+"\" class='pure-button default-player'>Open with default player</button></p>";
 					this.$el.find('.video-list-box').html(tpl);
 					
 					
