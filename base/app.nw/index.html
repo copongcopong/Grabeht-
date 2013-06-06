@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>Grabeht!</title>
+        <meta name="description" content="">
+        <link rel="stylesheet" href="assets/css/pure.1.0.0.min.css">
+        <link rel="stylesheet" href="assets/css/main.css">
+		<link href='http://fonts.googleapis.com/css?family=Fugaz+One' rel='stylesheet' type='text/css'>
+		
+        <script src="assets/js/vendor/modernizr-2.6.2-respond-1.1.0.min.js"></script>
+    </head>
+    <body>
+  	<div class="pure-g">	
+        <div id="main-header" class="pure-u-1">
+			<div class="pure-menu pure-menu-open pure-menu-horizontal">
+			    <ul>
+			        <li><a href="#myvideos" class="myvideos">My Videos</a></li>
+			        <li><a href="#about" class="about">About</a></li>
+			    </ul>
+			</div>
+			<h1>Grabeht!</h1>
+		</div>	
+	</div>		
+	<div class="pure-g">
+		<style type="text/css" media="screen">
+		
+			
+		</style>	
+		
+        <div id="main-content" style="">
+				<form class="pure-form pure-g grab-form">
+				    	<div class="pure-u-4-5">
+							<input name="url" id="url" type="text" class="pure-input-1" placeholder="http://www.youtube.com/watch?v=Some-Video" />
+						</div>	
+				        <div class="pure-u-1-5" style="text-align: center;">
+							<button type="submit" class="pure-button notice" style="">Grab Video!</button>
+						</div>
+				</form>
+            	
+				
+				
+				<p class="loading">Loading ...</p>
+				<p class="error">Huhuhu ...</p>
+				
+				<div id="ydata" class="pure-g" style="display:none;">
+					
+				</div>
+				<div id="video-collection" class="pure-g" style="display:none;">
+					
+				</div>
+
+		</div>
+	</div>	
+		<script type="text/template" id="video-collection-tpl" charset="utf-8">
+			<div class="pure-g" style="width: 98%; margin: 0 auto; padding: 20px 0 40px;">
+		
+				<div class="pure-u-2-5 video-lists" style="">
+					<div style="">
+					<ul class="video-formats">
+					<% _.each(data, function(vid){ %>
+						<li>
+						<a class="watch" data-ext="<%= vid.ext %>" data-vpath="<%= vid.vpath %>">
+							<img src="<%= vid.thumb %>" />
+							<span><%= vid.title %></span>
+						</a>
+				
+						</li>
+						
+					<% }); %>	
+					</ul>
+					</div>
+				</div>
+				<div class="pure-u-3-5 video-list-box">
+					
+		
+				</div>
+			</div>	
+		</script>
+		<script type="text/template" id="ydata-tpl" charset="utf-8">
+		<% if(data.completed != undefined) { %>
+			<div class="pure-u-1 oldvideo">
+				<p>It appears you already have downloaded this video before ... <br ><a class="pure-button pure-button-secondary watch" data-ext="<%= data.completed.ext %>" data-vpath="<%= data.completed.vpath %>">Watch Video!</a>
+				</p>
+			</div>
+		<% } %>	
+		
+			<div class="pure-g" style="width: 98%; margin: 0 auto; padding: 20px 0 40px;">
+			
+				<div class="pure-u-2-5 video-meta" style="">
+					<div style="">
+						<img src="<%= data.thumbnail_url %>" style="" />
+						<h4 style=""><%= data.title %></h4>
+						<ul>
+						<li>Length: <span><%= data.length_seconds %> secs</span>
+						<li>Rating: <span><%= Math.round(data.avg_rating * 100) / 100 %></span>
+						<li>Views: <span><%= data.view_count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") %></span>
+						</ul>
+					</div>
+				</div>
+				<div class="pure-u-3-5 video-box">
+					<span class="dlstats"></span>
+			
+					<h4>Video Formats</h4>
+					<ul class="video-formats">
+					<% _.each(data.formats, function(format){ %>
+						<% if(['flv', '3gp'].indexOf(format.container) < 0 ) { %>
+						<li>
+							<p><%= format.encoding %> - <em>res: <%= format.resolution %></em></p>
+							<a href="<%= format.url %>" class="pure-button pure-button-primary dl btn-success" data-ext="<%= format.container %>" data-video-id="<%= format.video_id %>">download .<%= format.container %> </a>
+					
+						</li>
+						<% } %>
+					<% }); %>	
+					</ul>
+			
+				</div>
+			</div>	
+		</script>
+		<script src="assets/js/vendor/jquery-1.9.1.min.js"></script>
+		<script src="assets/js/vendor/underscore-1.4.4.min.js"></script>
+		<script src="assets/js/vendor/backbone-1.0.0.min.js"></script>
+		
+        <script src="assets/js/vendor/utils.js"></script>
+		<script type="text/javascript" charset="utf-8">
+			$('#url').focus();
+			window.ondragover = function(e) { e.preventDefault(); return false };
+			window.ondrop = function(e) { e.preventDefault(); return false };
+			
+			var ytdl = require('ytdl');
+			var fs = require('fs');
+			window.AppView = {};
+			window.AppView.base = Backbone.View.extend({
+				el: "#main-content",
+				initialize: function() {
+					
+				},
+				events: {
+					"submit form": "processUrl",
+					"change #url": "processUrl"
+				},
+				
+				processUrl: function() {
+					$('p.error').hide();
+					url = $('#url', this.el).val();
+					
+					if(url.indexOf('?v=') > -1 && url.length > 3) {
+						id = url.split('?v=')[1];
+						url = 'http://www.youtube.com/watch?v=' + id;
+					} 
+					
+					$('p.loading').addClass('show').show().removeClass('peekaboohide');
+					$("#ydata").hide();
+					ytdl.getInfo(url, function(err, info){
+						
+						if(!err) {
+							console.log(info);
+						
+							view = new window.AppView.ydata({data: info});
+							
+						} else {
+							$('p.loading').hide().removeClass('show').addClass('peekaboohide');
+							$('p.error').show().text("FATAL ERROR!");
+						}
+						
+					});
+					
+					return false;
+				}
+				
+			});
+			
+			function fsizeToHuman(bytes) {
+			  if (bytes <= 0) { return 0; }
+			  var t2 = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), 12);
+			  return (Math.round(bytes * 100 / Math.pow(1024, t2)) / 100) +
+			          units.charAt(t2).replace(' ', '') + 'B';
+			}
+			
+			
+			window.AppView.ydata = Backbone.View.extend({
+				el: "#ydata",
+				initialize: function(options) {
+					console.log(options);
+					this.ctpl = _.template($('#ydata-tpl').html());
+					this.data = options.data;
+					$("#video-collection").hide();
+					this.render();
+					this.request = require('request');
+					_.bindAll(this, "showVideo");
+				},
+				
+				events: {
+					"click a.dl": "saveVideo",
+					"click a.watch": "watchVideo"
+				},
+				
+				cleanupTitle: function(str) {
+					return str.replace(/\s+/g, '-').replace(/[^a-zA-Z-0-9]/g, '').toLowerCase();
+					
+				},
+				
+				saveVideo: function(ev) {
+					ev.preventDefault();
+					el = $(ev.target);
+					
+					if(el.hasClass('downloading')) return;
+					
+					el.addClass('downloading');
+					$('#ydata .dlstats').html("...");
+					url = el.attr('href');
+					ext = el.attr('data-ext');
+					fname = this.cleanupTitle(this.data.title + ' ' + this.data.video_id) + '.' + ext;
+					vPath = '../vids/' + fname + '.partial';
+					vPathReal = '../vids/' + fname;
+					d = new Date();
+					meta = {
+						'vpath': vPathReal, 
+						'vpath_temp': vPath,
+						'ext': ext,
+						data: this.data,
+						created: d,
+						created_t: d.getTime()
+					};
+					store.set("grabeht::video::" + this.data.video_id, meta);
+					
+					console.log("init downloading "+fname);
+					download = fs.createWriteStream(vPath);
+					resp = this.request(url);
+					resp.pipe(download);
+					
+					var fsize;
+					resp.on('response', function(res) {
+					    if (res.statusCode !== 200) {
+					      return stream.emit('error', new Error('status code ' + res.statusCode));
+					    }
+					    fsize = res.headers['content-length'];
+						console.log("fileSize", fsize);
+					});
+					
+					var progress;
+					download.on('open', function(a,b){
+						console.log("saving file to disk.");
+						
+						progress = setInterval(function(){
+							if(fsize) {
+								fs.stat(vPath, function (err, stats) {
+									percent = stats.size / fsize;
+									percentage = percent * 100;
+									$('#ydata .dlstats').html(Math.floor(percentage) + '%');
+		        					console.log("checking filesize ", percent, stats.size, fsize);
+		    					});
+							}
+						}, 800);
+					
+					});
+					self = this;
+					video_id = this.data.video_id;
+					vtitle = this.data.title;
+					thumbnail_url = this.data.thumbnail_url;
+					download.on('finish', function(){
+						//alert("Done. "+ fname);
+						clearInterval(progress);
+						fs.rename(vPath, vPathReal, function(){
+							//rename video!
+							var d = new Date();
+							var dt = d.getTime();
+							
+							vids = store.get("grabeht::video_completed");
+							
+							if(vids == null) vids = [];
+							
+							vids.push({id: video_id, title: vtitle, created: d, created_t: dt, thumb: thumbnail_url, ext: ext, vpath: vPathReal});
+							store.set("grabeht::video_completed", vids);
+							var meta = store.get("grabeht::video::" + video_id);
+							var d = new Date();
+							meta.complete = true;
+							meta.compete_date = d;
+							meta.compete_datet = dt;
+							store.set("grabeht::video::" + video_id, meta);
+							console.log("rename");
+							$('#ydata .dlstats').html("100%");
+							setTimeout(function(){
+								self.showVideo(vPathReal, ext);
+							}, 400);	
+						});
+						download.end();
+					});
+					download.on('error', function(){
+						alert("Error downloading "+ fname);
+					});
+				},
+				
+				render: function() {
+					var cdata = {data: this.data};
+					vid = store.get("grabeht::video::" + this.data.video_id);
+					if(vid != null && vid.complete != undefined) {
+						console.log("vid ", vid);
+						cdata.data.completed = {vpath: vid.vpath, ext: vid.ext, date: vid.compete_date};
+					}
+					console.log(cdata);
+					this.$el.html(this.ctpl(cdata))
+						.promise()
+						.done(function(){
+							$('p.loading').hide().removeClass('show').addClass('peekaboohide');
+						});
+					this.$el.show();	
+				},
+				
+				showVideo: function(vPathReal, ext) {
+					console.log("showVideo", vPathReal, ext);
+					ww = this.$el.find('.video-box').width();
+					w = ww - 20;
+					tpl = "<video width=\""+w+"\" controls><source src=\""+vPathReal+"\" type=\"video/"+ext+"\" autoplay></video>";
+					this.$el.find('.video-box').html(tpl);
+					
+					
+				},
+				
+				watchVideo: function(ev) {
+					ev.preventDefault();
+					el = $(ev.target);
+					el.parent().remove();
+					vpath = el.attr('data-vpath');
+					ext = el.attr('data-ext');
+					this.showVideo(vpath, ext);
+					
+				}
+				
+				
+			});
+			
+			init = new window.AppView.base;
+			
+			window.AppView.head = Backbone.View.extend({
+				el: "#main-header",
+				initialize: function() {
+					this.listCtpl = _.template($('#video-collection-tpl').html());
+					
+					console.log(this.vids);
+				},
+				events: {
+					"click a.myvideos": "showVideos",
+					"click a[href='#about']": "showAbout"
+				},
+				render: function(){},
+				showVideos: function(ev) {
+					ev.preventDefault();
+					this.vids = store.get("grabeht::video_completed");
+					
+					if(this.vids != null) {
+						
+						ctpl = this.listCtpl({data: this.vids});
+					} else {
+						ctpl = "<p class=\"error\">No Video Collection found!</p>";
+					}
+					console.log(ctpl);
+					vids = new window.AppView.videolist({ctpl: ctpl});
+					
+				}
+			});
+			
+			window.AppView.videolist = Backbone.View.extend({
+				el: "#video-collection",
+				
+				initialize: function(options) {
+					$('#ydata').hide();
+					this.ctpl = options.ctpl;
+					this.render();
+				},
+				render: function() {
+					ctpl = this.ctpl;
+					this.$el.html(ctpl).show();
+				},
+				events: {
+					"click a.watch": "watchVideo"
+				},
+				
+				showVideo: function(vPathReal, ext) {
+					console.log("showVideo", vPathReal, ext);
+					ww = this.$el.find('.video-list-box').width();
+					w = ww - 20;
+					tpl = "<video width=\""+w+"\" controls><source src=\""+vPathReal+"\" type=\"video/"+ext+"\" autoplay></video>";
+					this.$el.find('.video-list-box').html(tpl);
+					
+					
+				},
+				
+				watchVideo: function(ev) {
+					ev.preventDefault();
+					el = $(ev.currentTarget);
+					console.log(el);
+					vpath = el.attr('data-vpath');
+					ext = el.attr('data-ext');
+					console.log(vpath, ext);
+					this.showVideo(vpath, ext);
+					
+				}
+			});
+			
+			initHead = new window.AppView.head;
+			
+		</script>
+		<script src="assets/js/main.js"></script>
+
+    </body>
+</html>

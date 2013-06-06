@@ -1,0 +1,12 @@
+{
+	"name":"Youtuber",
+	"main": "index.html",
+	"window": {
+	    "frame": true,
+	    "width": 900,
+	    "height": 600,
+	    "toolbar": true,
+	    "position": "right",
+	    "resizable": true
+	  }
+}
