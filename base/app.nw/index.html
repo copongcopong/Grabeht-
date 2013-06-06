@@ -242,7 +242,8 @@
 						console.log("fileSize", fsize);
 					});
 					
-					var progress;
+					var progress, lastratio, lastratioctr;
+					lastratioctr = 0;
 					download.on('open', function(a,b){
 						console.log("saving file to disk.");
 						
@@ -250,8 +251,20 @@
 							if(fsize) {
 								fs.stat(vPath, function (err, stats) {
 									percent = stats.size / fsize;
+									lastratio = $('#ydata .dlstats').attr('data-ratio');
+									
+									if((lastratio * 1) == percent) {
+										lastratioctr++;
+									} else {
+										lastratioctr = 0;
+									}
+									//4 minutes of no activity; kill it;
+									if(lastratioctr > 300) {
+										console.log("STOP THE PROCESS. ");
+									}
+									
 									percentage = percent * 100;
-									$('#ydata .dlstats').html(Math.floor(percentage) + '%');
+									$('#ydata .dlstats').attr('data-ratio', percent).html(Math.floor(percentage) + '%');
 		        					console.log("checking filesize ", percent, stats.size, fsize);
 		    					});
 							}
@@ -272,7 +285,9 @@
 							
 							vids = store.get("grabeht::video_completed");
 							
-							if(vids == null) vids = [];
+							if(vids == null) {
+								vids = [];
+							}
 							
 							vids.push({id: video_id, title: vtitle, created: d, created_t: dt, thumb: thumbnail_url, ext: ext, vpath: vPathReal});
 							store.set("grabeht::video_completed", vids);
